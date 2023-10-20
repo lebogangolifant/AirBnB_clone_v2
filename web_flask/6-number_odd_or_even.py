@@ -64,12 +64,15 @@ def number_template(n):
 @app.route('/number_odd_or_even/<int:n>', strict_slashes=False)
 def number_odd_or_even(n):
     """
-    Display an HTML page with 'Number: n is even|odd' inside an H1 tag if n is an integer.
+    Display an HTML page with 'Number: n is even|odd'
+    inside an H1 tag if n is an integer.
     """
     if n % 2 == 0:
-        return render_template('6-number_odd_or_even.html', number=n, odd_even='even')
+        return render_template('6-number_odd_or_even.html',
+                               number=n, odd_even='even')
     else:
-        return render_template('6-number_odd_or_even.html', number=n, odd_even='odd')
+        return render_template('6-number_odd_or_even.html',
+                               number=n, odd_even='odd')
 
 
 if __name__ == '__main__':
