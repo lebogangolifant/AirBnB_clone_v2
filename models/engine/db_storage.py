@@ -8,72 +8,97 @@ from models.city import City
 from models.amenity import Amenity
 from models.place import Place
 from models.review import Review
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from os import getenv
+
+all_classes = {"State", "City", "Amenity", "User", "Place", "Review"}
 
 
 class DBStorage:
-    """Class that save instances to a mysql db and
-    get instances from the db
+    """...
+
     Attributes:
-        __engine: create the interfaces of comunication with db
-        __session: open a comunication with the db
+        __engine: The SQLAlchemy engine
+        __session: The SQLAlchemy session
+
     """
+
     __engine = None
     __session = None
 
     def __init__(self):
-        """create a engine and drop all tables if is necesart"""
-        self.__engine = create_engine(
-            'mysql+mysqldb://{}:{}@{}/{}'.format(
-                os.getenv("HBNB_MYSQL_USER"),
-                os.getenv("HBNB_MYSQL_PWD"),
-                os.getenv("HBNB_MYSQL_HOST"),
-                os.getenv("HBNB_MYSQL_DB")), pool_pre_ping=True)
-        if os.getenv("HBNB_ENV") == "test":
+        """Initialize a connection with MySQL
+        and create tables
+        """
+
+        db_uri = "{0}+{1}://{2}:{3}@{4}:3306/{5}".format(
+            'mysql', 'mysqldb', getenv('HBNB_MYSQL_USER'),
+            getenv('HBNB_MYSQL_PWD'), getenv('HBNB_MYSQL_HOST'),
+            getenv('HBNB_MYSQL_DB'))
+
+        self.__engine = create_engine(db_uri, pool_pre_ping=True)
+        self.reload()
+
+        if getenv('HBNB_ENV') == 'test':
             Base.metadata.drop_all(self.__engine)
 
     def all(self, cls=None):
-        """show all the instances"""
-        instances = {}
-        if cls is None:
-            all_cls = ["State", "City", "User", "Place", "Review", "Amenity"]
+        """...
+        """
+        entities = dict()
 
-            for cl in all_cls:
-                objs = self.__session.query(eval(cl))
-                for obj in objs:
-                    key = "{}.{}".format(type(obj).__name__, obj.id)
-                    instances[key] = obj
+        if cls:
+            return self.get_data_from_table(cls, entities)
 
-        else:
-            objs = self.__session.query(cls).all()
-            for obj in objs:
-                key = "{}.{}".format(type(obj).__name__, obj.id)
-                instances[key] = obj
+        for entity in all_classes:
+            entities = self.get_data_from_table(eval(entity), entities)
 
-        return instances
+        return entities
 
     def new(self, obj):
-        """add an object into the database"""
-        self.__session.add(obj)
+        """Add obj to the current database session.
+        """
+        if obj:
+            self.__session.add(obj)
 
     def save(self):
-        """commit all changes of the current database session"""
+        """Commit all changes to the current database session.
+        """
+
         self.__session.commit()
 
     def delete(self, obj=None):
-        """ delete from the current database session"""
+        """Delete obj from the current database session.
+        """
+
         if obj is not None:
             self.__session.delete(obj)
 
     def reload(self):
-        """ reload all the objs"""
+        """Create all tables into database and initialize a new session.
+        """
+
         Base.metadata.create_all(self.__engine)
-        Session = scoped_session(sessionmaker(
-            bind=self.__engine, expire_on_commit=False))
+        session_factory = sessionmaker(bind=self.__engine,
+                                       expire_on_commit=False)
+        Session = scoped_session(session_factory)
         self.__session = Session()
 
+    def get_data_from_table(self, cls, structure):
+        """Get the data from a MySQL Table
+        """
+
+        if type(structure) is dict:
+            query = self.__session.query(cls)
+
+            for _row in query.all():
+                key = "{}.{}".format(cls.__name__, _row.id)
+                structure[key] = _row
+
+            return structure
+
     def close(self):
-        """Close session"""
+        """Close the Session
+        """
         self.__session.close()

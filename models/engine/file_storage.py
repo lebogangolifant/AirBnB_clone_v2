@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """AirBnB file storage class"""
+
 import json
 from models.base_model import BaseModel
 from models.user import User
@@ -21,17 +22,23 @@ class FileStorage:
     __objects = {}
 
     def all(self, cls=None):
-        """returns a dictionary
-        Return:
-            returns a dictionary of __object
+        """Returns all the objects
+
+        If a class is specified, the method only
+        returns the objects of same type.
+
         """
-        if cls is None:
-            return self.__objects
-        dict = {}
-        for key, value in self.__objects.items():
-            if value.__class__ == cls:
-                dict[key] = value
-        return dict
+
+        if cls:
+            same_type = dict()
+
+            for key, obj in self.__objects.items():
+                if obj.__class__ == cls:
+                    same_type[key] = obj
+
+            return same_type
+
+        return self.__objects
 
     def new(self, obj):
         """sets __object to given obj
@@ -63,13 +70,16 @@ class FileStorage:
             pass
 
     def delete(self, obj=None):
-        """Delete obj from __objects if it’s inside
+        """Delete obj from __objects if it's inside
         """
-        if obj is not None:
+        if obj:
             key = "{}.{}".format(type(obj).__name__, obj.id)
-            if key in self.__objects:
+
+            if self.__objects[key]:
                 del self.__objects[key]
+                self.save()
 
     def close(self):
-        """Close session"""
-        reload()
+        """Deserialize the JSON file to objects
+        """
+        self.reload()
